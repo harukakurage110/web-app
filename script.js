@@ -59,6 +59,10 @@
     document.cookie = cookieStr;
   }
 
+  function deleteCookie(name) {
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax`;
+  }
+
   function getCookie(name) {
     const row = document.cookie.split("; ").find((r) => r.startsWith(name + "="));
     if (!row) return null;
@@ -255,9 +259,9 @@
       desc: "本来は「タブを閉じる」操作ですが、プログラムから実際にタブを閉じることはできません。そこで、タブを閉じたときに起こることをこの場でシミュレーション（模擬的に再現）します。",
       run: doCloseTab,
     },
-    server: {
-      desc: "このページから架空のサーバーへリクエストを送るシミュレーションを行います。実際に外部へは送信されません。",
-      run: doServer,
+    clear: {
+      desc: "In-Memory・Cookie・LocalStorage・SessionStorageに保存したデータを、すべてこの場で消去します。",
+      run: doClear,
     },
   };
 
@@ -340,32 +344,6 @@
     });
   }
 
-  function renderServerPreview(cookieVal) {
-    resultBlock.hidden = false;
-    resultGrid.innerHTML = "";
-
-    const box = document.createElement("div");
-    box.className = "request-preview";
-
-    const cookieLine = cookieVal
-      ? `<span class="rp-sent">Cookie: ${STORAGE_KEY}=${cookieVal}</span>  ← 自動的に付いていく`
-      : `<span class="rp-blocked">Cookie: (保存されていないため付かない)</span>`;
-
-    box.innerHTML =
-      `GET /page HTTP/1.1\n` +
-      `Host: example.github.io\n` +
-      `${cookieLine}\n` +
-      `<span class="rp-blocked">// LocalStorage / SessionStorage / In-Memory の値は含まれない</span>`;
-
-    resultGrid.appendChild(box);
-
-    const note = document.createElement("p");
-    note.className = "result-note";
-    note.textContent =
-      "※ Cookieはブラウザが自動的にリクエストへ付けて送ります。それ以外は、プログラムが自分で読み出して送信しない限りサーバーには届きません。";
-    resultGrid.appendChild(note);
-  }
-
   // ---- action implementations ----
 
   function doReload() {
@@ -427,10 +405,18 @@
     addLog(checkLog, "✖️（シミュレーション）タブを閉じた場合に起こることを再現しました。");
   }
 
-  function doServer() {
-    const cookieVal = getCookie(STORAGE_KEY);
-    renderServerPreview(cookieVal);
-    addLog(checkLog, "📡（シミュレーション）サーバーへのリクエストを再現しました。");
+  function doClear() {
+    const before = getStatus();
+
+    memoryStore = {};
+    deleteCookie(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
+
+    const after = getStatus();
+    refreshStatusGrid();
+    renderDiffRows(before, after);
+    addLog(checkLog, "🗑️ すべての保存先のデータを消去しました。");
   }
 
   // ============================================================
