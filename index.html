@@ -1,1 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>保存先ラボ ― Webストレージのしくみを見る</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
 
+<div class="page">
+
+  <header class="page-header">
+    <p class="kicker">情報Ⅰ ｜ Webストレージ実験</p>
+    <h1>保存先ラボ</h1>
+    <p class="lede">同じ「保存する」でも、データの行き先はまったく違う。実際に保存して、消えるかどうかを目で確かめよう。</p>
+  </header>
+
+  <nav class="step-tabs" role="tablist" aria-label="学習のステップ">
+    <button class="step-tab is-active" id="tab-save" role="tab" aria-selected="true" aria-controls="panel-save">
+      <span class="step-num">1</span>
+      <span class="step-label">保存する</span>
+    </button>
+    <button class="step-tab" id="tab-check" role="tab" aria-selected="false" aria-controls="panel-check">
+      <span class="step-num">2</span>
+      <span class="step-label">操作して確認する</span>
+    </button>
+  </nav>
+
+  <!-- ============ STEP 1: SAVE ============ -->
+  <section class="panel is-active" id="panel-save" role="tabpanel" aria-labelledby="tab-save">
+
+    <div class="control-block">
+      <h2 class="block-title">① 保存先を選ぶ</h2>
+      <div class="method-picker" id="methodPicker">
+        <button class="method-btn" data-method="memory" style="--m-color:var(--c-memory)">
+          <span class="method-icon">🧠</span>
+          <span class="method-name">In-Memory</span>
+        </button>
+        <button class="method-btn" data-method="cookie" style="--m-color:var(--c-cookie)">
+          <span class="method-icon">🍪</span>
+          <span class="method-name">Cookie</span>
+        </button>
+        <button class="method-btn" data-method="local" style="--m-color:var(--c-local)">
+          <span class="method-icon">🗄️</span>
+          <span class="method-name">LocalStorage</span>
+        </button>
+        <button class="method-btn" data-method="session" style="--m-color:var(--c-session)">
+          <span class="method-icon">📎</span>
+          <span class="method-name">SessionStorage</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="control-block">
+      <h2 class="block-title">② 保存するデータを入力する</h2>
+      <div class="input-row">
+        <input type="text" id="dataInput" placeholder="例）student_name = 田中" maxlength="40">
+        <div class="cookie-expiry" id="cookieExpiry" hidden>
+          <label for="expirySelect">有効期限</label>
+          <select id="expirySelect">
+            <option value="session">ブラウザを閉じるまで（セッションCookie）</option>
+            <option value="10">10秒後に切れる</option>
+            <option value="30">30秒後に切れる</option>
+          </select>
+        </div>
+      </div>
+      <button class="save-btn" id="saveBtn" disabled>まず保存先を選んでください</button>
+    </div>
+
+    <div class="control-block canvas-block">
+      <h2 class="block-title">③ 保存の様子を見る</h2>
+      <div class="canvas" id="canvas">
+        <div class="node node-operator" id="nodeOperator" style="--m-color:var(--c-ink)">
+          <span class="node-icon">🖥️</span>
+          <span class="node-label">あなたの操作<br><small>ブラウザ内</small></span>
+        </div>
+
+        <div class="lockers">
+          <div class="node node-locker" data-locker="memory" id="lockerMemory" style="--m-color:var(--c-memory)">
+            <span class="node-icon">🧠</span>
+            <span class="node-label">In-Memory</span>
+          </div>
+          <div class="node node-locker" data-locker="cookie" id="lockerCookie" style="--m-color:var(--c-cookie)">
+            <span class="node-icon">🍪</span>
+            <span class="node-label">Cookie</span>
+          </div>
+          <div class="node node-locker" data-locker="local" id="lockerLocal" style="--m-color:var(--c-local)">
+            <span class="node-icon">🗄️</span>
+            <span class="node-label">LocalStorage</span>
+          </div>
+          <div class="node node-locker" data-locker="session" id="lockerSession" style="--m-color:var(--c-session)">
+            <span class="node-icon">📎</span>
+            <span class="node-label">SessionStorage</span>
+          </div>
+        </div>
+
+        <div class="node node-server" id="nodeServer" style="--m-color:var(--c-server)">
+          <span class="node-icon">🌐</span>
+          <span class="node-label">サーバー</span>
+          <span class="server-note" id="serverNote">まだ何も送信されていません</span>
+        </div>
+      </div>
+      <p class="canvas-hint">保存ボタンを押すと、データがどこへ運ばれるかをアニメーションで表示します。</p>
+    </div>
+
+    <div class="log-block">
+      <h2 class="block-title">操作ログ</h2>
+      <ul class="log-list" id="saveLog" aria-live="polite"></ul>
+    </div>
+
+  </section>
+
+  <!-- ============ STEP 2: CHECK ============ -->
+  <section class="panel" id="panel-check" role="tabpanel" aria-labelledby="tab-check" hidden>
+
+    <div class="control-block">
+      <h2 class="block-title">今の保存状況</h2>
+      <div class="status-grid" id="statusGrid">
+        <div class="status-card" data-key="memory" style="--m-color:var(--c-memory)">
+          <span class="method-icon">🧠</span>
+          <span class="status-name">In-Memory</span>
+          <span class="status-value" data-value="memory">―</span>
+        </div>
+        <div class="status-card" data-key="cookie" style="--m-color:var(--c-cookie)">
+          <span class="method-icon">🍪</span>
+          <span class="status-name">Cookie</span>
+          <span class="status-value" data-value="cookie">―</span>
+        </div>
+        <div class="status-card" data-key="local" style="--m-color:var(--c-local)">
+          <span class="method-icon">🗄️</span>
+          <span class="status-name">LocalStorage</span>
+          <span class="status-value" data-value="local">―</span>
+        </div>
+        <div class="status-card" data-key="session" style="--m-color:var(--c-session)">
+          <span class="method-icon">📎</span>
+          <span class="status-name">SessionStorage</span>
+          <span class="status-value" data-value="session">―</span>
+        </div>
+      </div>
+      <button class="refresh-btn" id="refreshBtn">状況を再確認する</button>
+    </div>
+
+    <div class="control-block">
+      <h2 class="block-title">操作を選んで実行する</h2>
+      <div class="action-picker" id="actionPicker">
+        <button class="action-btn is-active" data-action="reload">
+          <span class="action-icon">🔄</span>
+          <span>ページを再読み込みする</span>
+        </button>
+        <button class="action-btn" data-action="newtab">
+          <span class="action-icon">🪟</span>
+          <span>新しいタブでこのページを開く</span>
+        </button>
+        <button class="action-btn" data-action="wait">
+          <span class="action-icon">⏳</span>
+          <span>10秒間、時間の経過を見る</span>
+        </button>
+        <button class="action-btn" data-action="closeTab">
+          <span class="action-icon">✖️</span>
+          <span>タブを閉じる（シミュレーション）</span>
+        </button>
+        <button class="action-btn" data-action="server">
+          <span class="action-icon">📡</span>
+          <span>サーバへリクエストを送る（シミュレーション）</span>
+        </button>
+      </div>
+      <p class="action-desc" id="actionDesc"></p>
+      <button class="run-btn" id="runBtn">実行する</button>
+    </div>
+
+    <div class="control-block" id="resultBlock" hidden>
+      <h2 class="block-title">実行結果</h2>
+      <div class="result-grid" id="resultGrid"></div>
+    </div>
+
+    <div class="log-block">
+      <h2 class="block-title">操作ログ</h2>
+      <ul class="log-list" id="checkLog" aria-live="polite"></ul>
+    </div>
+
+  </section>
+
+  <footer class="page-footer">
+    <p>このアプリで保存したデータはすべてこの端末のブラウザ内だけで完結しています。他の人や本物のサーバーには送られません。</p>
+  </footer>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
